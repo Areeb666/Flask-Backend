@@ -1,10 +1,10 @@
+import os
 from flask import Flask, request, jsonify
 import openpyxl
-import os
-from flask_cors import CORS  # Add this import
+from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS globally
+CORS(app)
 
 # Path to the Excel file
 EXCEL_FILE = "customer_details.xlsx"
@@ -46,4 +46,6 @@ def place_order():
         return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Set the port from environment variable, or default to 5000
+    port = int(os.getenv("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
