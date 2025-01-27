@@ -4,7 +4,7 @@ import openpyxl
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins, or replace '*' with your frontend URL
 
 # Path to the Excel file
 EXCEL_FILE = "customer_details.xlsx"
