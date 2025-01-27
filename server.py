@@ -1,21 +1,17 @@
 import os
 from flask import Flask, request, jsonify
-import openpyxl
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins, or replace '*' with your frontend URL
+CORS(app)
 
-# Path to the Excel file
-EXCEL_FILE = "customer_details.xlsx"
+# Path to the text file where customer details will be stored
+ORDERS_FILE = "customer_details.txt"
 
-# Create an Excel file with headers if it doesn't exist
-if not os.path.exists(EXCEL_FILE):
-    workbook = openpyxl.Workbook()
-    sheet = workbook.active
-    sheet.title = "Customer Details"
-    sheet.append(["Name", "Address", "Contact", "Remarks"])  # Headers
-    workbook.save(EXCEL_FILE)
+# Create the file if it doesn't exist
+if not os.path.exists(ORDERS_FILE):
+    with open(ORDERS_FILE, "w") as file:
+        file.write("Name\tAddress\tContact\tRemarks\n")  # Headers
 
 @app.route('/place-order', methods=['POST'])
 def place_order():
@@ -28,19 +24,42 @@ def place_order():
         name = data.get('name')
         address = data.get('address')
         contact = data.get('contact')
-        remarks = data.get('remarks')
+        remarks = data.get('remarks', "")
 
         # Check for missing required fields
         if not name or not address or not contact:
             return jsonify({"message": "Missing required fields"}), 400
 
-        # Append data to the Excel file
-        workbook = openpyxl.load_workbook(EXCEL_FILE)
-        sheet = workbook.active
-        sheet.append([name, address, contact, remarks])
-        workbook.save(EXCEL_FILE)
+        # Append data to the text file
+        with open(ORDERS_FILE, "a") as file:
+            file.write(f"{name}\t{address}\t{contact}\t{remarks}\n")
 
         return jsonify({"message": "Order placed successfully!"}), 200
+    except Exception as e:
+        print(f"Error: {e}")  # Log the error
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
+
+@app.route('/get-orders', methods=['GET'])
+def get_orders():
+    """
+    Endpoint to retrieve all customer orders.
+    """
+    try:
+        with open(ORDERS_FILE, "r") as file:
+            lines = file.readlines()
+
+        # Skip the header and process the data
+        orders = []
+        for line in lines[1:]:
+            name, address, contact, remarks = line.strip().split("\t")
+            orders.append({
+                "name": name,
+                "address": address,
+                "contact": contact,
+                "remarks": remarks
+            })
+
+        return jsonify({"orders": orders}), 200
     except Exception as e:
         print(f"Error: {e}")  # Log the error
         return jsonify({"message": f"An error occurred: {str(e)}"}), 500
