@@ -1,43 +1,15 @@
 import os
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask import Flask, jsonify
 
 app = Flask(__name__)
-CORS(app)
 
-# Path to the text file where customer details will be stored
+# Path to the text file where customer details are stored
 ORDERS_FILE = "customer_details.txt"
 
-# Create the file if it doesn't exist
+# Ensure the file exists and contains a header
 if not os.path.exists(ORDERS_FILE):
     with open(ORDERS_FILE, "w") as file:
         file.write("Name\tAddress\tContact\tRemarks\n")  # Headers
-
-@app.route('/place-order', methods=['POST'])
-def place_order():
-    """
-    Endpoint to handle customer details submission.
-    """
-    try:
-        # Parse incoming JSON data
-        data = request.json
-        name = data.get('name')
-        address = data.get('address')
-        contact = data.get('contact')
-        remarks = data.get('remarks', "")
-
-        # Check for missing required fields
-        if not name or not address or not contact:
-            return jsonify({"message": "Missing required fields"}), 400
-
-        # Append data to the text file
-        with open(ORDERS_FILE, "a") as file:
-            file.write(f"{name}\t{address}\t{contact}\t{remarks}\n")
-
-        return jsonify({"message": "Order placed successfully!"}), 200
-    except Exception as e:
-        print(f"Error: {e}")  # Log the error
-        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 @app.route('/get-orders', methods=['GET'])
 def get_orders():
@@ -50,18 +22,21 @@ def get_orders():
 
         # Skip the header and process the data
         orders = []
-        for line in lines[1:]:
-            name, address, contact, remarks = line.strip().split("\t")
-            orders.append({
-                "name": name,
-                "address": address,
-                "contact": contact,
-                "remarks": remarks
-            })
+        for line in lines[1:]:  # Skip the header
+            try:
+                name, address, contact, remarks = line.strip().split("\t")
+                orders.append({
+                    "name": name,
+                    "address": address,
+                    "contact": contact,
+                    "remarks": remarks
+                })
+            except ValueError:
+                print(f"Skipping malformed line: {line.strip()}")
 
         return jsonify({"orders": orders}), 200
     except Exception as e:
-        print(f"Error: {e}")  # Log the error
+        print(f"Error while reading orders: {e}")  # Log the error
         return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 if __name__ == '__main__':
